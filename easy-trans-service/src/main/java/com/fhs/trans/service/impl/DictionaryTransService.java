@@ -157,16 +157,20 @@ public class DictionaryTransService implements ITransTypeService, InitializingBe
             tempField.setAccessible(true);
             tempTrans = tempField.getAnnotation(Trans.class);
             String dicCodes = StringUtil.toString(ReflectUtils.getValue(obj, tempField.getName()));
-            if (dicCodes.contains(",")) {
-                dicCodes = dicCodes.replace("[", "").replace("]", "").replace(" ", "");
+            if(dicCodes.contains("[")){
+                dicCodes = dicCodes.replace("[", "").replace("]", "");
             }
+            if (dicCodes.contains(",")) {
+                dicCodes = dicCodes.replace(" ", "");
+            }
+
             String[] dicCodeArray = dicCodes.split(",");
             String key = tempTrans.key().contains("KEY_") ? StringUtil.toString(ReflectUtils.getValue(obj, tempTrans.key().replace("KEY_", ""))) : tempTrans.key();
             //sex_0/1  男 女
             List<String> dicCodeList = new ArrayList<>();
             for (String dicCode : dicCodeArray) {
                 if (!StringUtil.isEmpty(dicCode)) {
-                    dicCodeList.add(bothCacheService.get(getMapKey(key, dicCode)));
+                    dicCodeList.add(bothCacheService.get(getMapKey(key.trim(), dicCode)));
                 }
             }
             String transResult = dicCodeList.size() > Constant.ZERO ? StringUtil.getStrForIn(dicCodeList, false) : "";

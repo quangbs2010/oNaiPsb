@@ -69,16 +69,15 @@ public class SimpleTransService implements ITransTypeService, InitializingBean {
                 continue;
             }
             Map<String, String> transCache = null;
-            // 主键可能是数组
-            pkey = pkey.replace("[", "").replace("]", "");
             Map<String, Object> tempTransCache = null;
             boolean isMany = false;
             Object targetObject = null;
-            if (pkey.contains(",")) {
+            if (pkey.contains(",") || pkey.contains("[")) {
+                // 主键可能是数组
+                pkey = pkey.replace("[", "").replace("]", "");
                 isMany = true;
                 String[] pkeys = pkey.split(",");
                 transCache = new LinkedHashMap<>();
-
                 for (String tempPkey : pkeys) {
                     tempTransCache = getTempTransCacheMap(tempTrans, tempPkey);
                     if (tempTransCache == null || tempTransCache.isEmpty()) {
@@ -271,6 +270,10 @@ public class SimpleTransService implements ITransTypeService, InitializingBean {
      * @return 缓存
      */
     private Map<String, Object> getTempTransCacheMap(Trans tempTrans, Object pkey) {
+        //如果string的话去空格和[]
+        if(pkey!= null && pkey instanceof String){
+            pkey = ((String) pkey).replace("[","").replace("]","").trim();
+        }
         String className = getTargetClassName(tempTrans);
         String transType = this.getClass() == SimpleTransService.class ?
                 TransType.SIMPLE : TransType.RPC;
