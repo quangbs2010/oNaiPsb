@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.type.filter.TypeFilter;
 import org.springframework.util.StringUtils;
 
@@ -39,12 +40,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AutoTransService implements ITransTypeService, InitializingBean, ApplicationListener<ApplicationReadyEvent> {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(AutoTransService.class);
-
-
-    /**
-     * service的包路径
-     */
-    private String packageNames;
 
     /**
      * 翻译数据缓存map
@@ -226,22 +221,19 @@ public class AutoTransService implements ITransTypeService, InitializingBean, Ap
     }
 
 
-    public void init(ApplicationReadyEvent applicationReadyEvent) {
+    public void init(ApplicationReadyEvent event) {
         //spring容器初始化完成之后，就会自行此方法。
-        Set<Class<?>> entitySet = scan(AutoTrans.class, packageNames.split(";"));
-        // 遍历所有class，获取所有用@autowareYLM注释的字段
-        if (entitySet != null) {
-            for (Class<?> entity : entitySet) {
-                // 获取该类
-                Object baseService = SpringContextUtil.getBeanByName(entity);
-                if (!(baseService instanceof AutoTransable)) {
-                    continue;
-                }
-                AutoTrans autoTransSett = entity.getAnnotation(AutoTrans.class);
-                this.baseServiceMap.put(autoTransSett.namespace(), (AutoTransable) baseService);
-                this.transSettMap.put(autoTransSett.namespace(), autoTransSett);
+        ConfigurableApplicationContext context = event.getApplicationContext();
+        Map<String, Object> beans = context.getBeansWithAnnotation(AutoTrans.class);
+        for (Object baseService : beans.values()) {
+            if (!(baseService instanceof AutoTransable)) {
+                continue;
             }
+            AutoTrans autoTransSett = baseService.getClass().getAnnotation(AutoTrans.class);
+            this.baseServiceMap.put(autoTransSett.namespace(), (AutoTransable) baseService);
+            this.transSettMap.put(autoTransSett.namespace(), autoTransSett);
         }
+
         new Thread(() -> {
             Thread.currentThread().setName("refresh auto trans cache");
             refreshCache(new HashMap<>());
@@ -429,12 +421,8 @@ public class AutoTransService implements ITransTypeService, InitializingBean, Ap
     }
 
     @Override
-    public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
-        init(applicationReadyEvent);
-    }
-
-    public void setPackageNames(String packageNames) {
-        this.packageNames = packageNames;
+    public void onApplicationEvent(ApplicationReadyEvent event) {
+        init(event);
     }
 
     public void setRedisTransCache(RedisCacheService<Map<String, Object>> redisTransCache) {

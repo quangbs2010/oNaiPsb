@@ -53,12 +53,6 @@ public class TransServiceConfig implements InitializingBean {
 
 
     /**
-     * service的包路径
-     */
-    @Value("${easy-trans.autotrans.package:com.*.*.service.impl}")
-    private String packageNames;
-
-    /**
      * 数据切换api
      */
     @Autowired(required = false)
@@ -83,9 +77,7 @@ public class TransServiceConfig implements InitializingBean {
     @Bean
     @DependsOn("springContextUtil")
     public AutoTransService autoTransService() {
-        AutoTransService autoTransService = new AutoTransService();
-        autoTransService.setPackageNames(packageNames);
-        return autoTransService;
+        return new AutoTransService();
     }
 
     /**
