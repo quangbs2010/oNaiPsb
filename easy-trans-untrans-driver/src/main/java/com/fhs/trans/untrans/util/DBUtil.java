@@ -29,9 +29,7 @@ public class DBUtil {
         QueryRunner qr = new QueryRunner();
         try {
             List<QueryResult> queryResultList = qr.query(connection, sqlIn, new BeanListHandler<QueryResult>(QueryResult.class), groupKeys.toArray());
-            if(!TransactionSynchronizationManager.isActualTransactionActive()){
-                DbUtils.close(connection);
-            }
+            DbUtils.close(connection);
             return queryResultList.stream().collect(Collectors.toMap(QueryResult::getGroupKey, QueryResult::getUniqueKey));
         } catch (SQLException e) {
             throw new RuntimeException(e);
