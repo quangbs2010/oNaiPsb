@@ -1,6 +1,6 @@
 package com.fhs.trans.untrans.config;
 
-import com.fhs.trans.untrans.driver.MysqlUnTransDriver;
+import com.fhs.trans.untrans.driver.CommonUnTransDriver;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -11,10 +11,10 @@ import org.springframework.context.annotation.Configuration;
 public class UnTransDriverConfig {
 
     @Bean
-    @ConditionalOnProperty(name = "easy-trans.db-type", havingValue = "mysql")
-    public MysqlUnTransDriver mysqlUnTransDriver() {
-        MysqlUnTransDriver result = new MysqlUnTransDriver();
+    public CommonUnTransDriver mysqlUnTransDriver() {
+        CommonUnTransDriver result = new CommonUnTransDriver();
         return result;
     }
+
 
 }

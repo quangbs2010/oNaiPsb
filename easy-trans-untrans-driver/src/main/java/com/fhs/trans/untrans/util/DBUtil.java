@@ -8,9 +8,7 @@ import org.apache.commons.dbutils.handlers.BeanListHandler;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.sql.*;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class DBUtil {
@@ -24,6 +22,7 @@ public class DBUtil {
      * @return
      */
     public static Map<String, String> query(String sql, List<String> groupKeys, Connection connection) {
+        groupKeys = new ArrayList<>(new HashSet<>(groupKeys));
         //in 有多少个就给多少个 问号，此种lowB的写法兼容mysql 的driver。
         String sqlIn = sql + "("  + groupKeys.stream().map(key->{return "?";}).collect(Collectors.joining(",")) + ")";
         QueryRunner qr = new QueryRunner();

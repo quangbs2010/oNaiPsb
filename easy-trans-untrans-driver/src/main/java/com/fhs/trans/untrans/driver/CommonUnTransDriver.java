@@ -14,9 +14,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * mysql的反向翻译驱动实现
+ * mysql/sqlserver/postgresql 的反向翻译驱动实现
  */
-public class MysqlUnTransDriver implements SimpleTransService.SimpleUnTransDiver {
+public class CommonUnTransDriver implements SimpleTransService.SimpleUnTransDiver {
 
 
     @Autowired
@@ -24,7 +24,8 @@ public class MysqlUnTransDriver implements SimpleTransService.SimpleUnTransDiver
 
     @Override
     public Map<String, String> getUnTransMap(UnTrans unTrans, List<String> groupKeys) {
-        String groupKeyConcat = "CONCAT(" + Arrays.stream(unTrans.columns()).collect(Collectors.joining(",'/',")) + ")";
+        String groupKeyConcat = unTrans.columns().length > 1 ?
+                "CONCAT(" + Arrays.stream(unTrans.columns()).collect(Collectors.joining(",'/',")) + ")" : unTrans.columns()[0];
         String sql = MessageFormat.format(SQL, groupKeyConcat, unTrans.uniqueColumn(), unTrans.tableName(), groupKeyConcat);
         try {
             return DBUtil.query(sql, groupKeys, datasource.getConnection());
