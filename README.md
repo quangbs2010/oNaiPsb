@@ -8,7 +8,7 @@
 
 # 插件文档
 有问题先看文档哦！！！    
-http://easy-trans.fhs-opensource.top/ 
+http://easy-trans.fhs-opensource.top/     
 
 # 求star
 我们非常需要您的star支持，就是右上角的那个小星星，帮忙点一下吧，抱拳啦！
@@ -31,7 +31,7 @@ starter--必须！！！
        <dependency>
             <groupId>com.fhs-opensource</groupId>
             <artifactId>easy-trans-spring-boot-starter</artifactId>
-            <version>2.1.11</version>
+            <version>2.1.16</version>
         </dependency>
 ```
    Mybatis plus 扩展：
@@ -39,7 +39,7 @@ starter--必须！！！
         <dependency>
             <groupId>com.fhs-opensource</groupId>
             <artifactId>easy-trans-mybatis-plus-extend</artifactId>
-            <version>2.1.11</version>
+            <version>2.1.16</version>
         </dependency>
 ```
   JPA  扩展：
@@ -47,7 +47,7 @@ starter--必须！！！
         <dependency>
             <groupId>com.fhs-opensource</groupId>
             <artifactId>easy-trans-jpa-extend</artifactId>
-            <version>2.1.11</version>
+            <version>2.1.16</version>
         </dependency>
 ```
 Beetl SQL 扩展：
@@ -55,7 +55,7 @@ Beetl SQL 扩展：
         <dependency>
             <groupId>com.fhs-opensource</groupId>
             <artifactId>easy-trans-beetl-sql-extend</artifactId>
-            <version>2.1.11</version>
+            <version>2.1.16</version>
         </dependency>
 ```
 TK Mybatis(通用mapper) 扩展：
@@ -63,7 +63,7 @@ TK Mybatis(通用mapper) 扩展：
         <dependency>
             <groupId>com.fhs-opensource</groupId>
             <artifactId>easy-trans-tk-extend</artifactId>
-            <version>2.1.11</version>
+            <version>2.1.16</version>
         </dependency>
 ```
  如果使用Redis请添加redis的引用(如果之前加过了请不要重复添加)
@@ -73,7 +73,10 @@ TK Mybatis(通用mapper) 扩展：
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 ```
-注意：非maven中央仓库更新可能延迟，如果高版本无法引入请尝试切到低一个版本过一天后在切回来。   
+注意：非maven中央仓库更新可能延迟，如果高版本无法引入请尝试切到低一个版本过一天后在切回来。 
+
+
+  
 2、在yaml中添加如下配置
 ``` YAML
 easy-trans:
@@ -91,6 +94,13 @@ easy-trans:
 3、如果不使用redis，请在启动类加禁用掉redis的自动配置类
 ``` java
 @SpringBootApplication(exclude = { RedisAutoConfiguration.class })
+//单体跑的话，排除下面2个类提高启动速度，后面出版本解决
+@SpringBootApplication(exclude = {
+       
+        // 下面这2个没啥用，而且会拖慢启动速度
+        SimpleDiscoveryClientAutoConfiguration.class,
+        CompositeDiscoveryClientAutoConfiguration.class
+})
 ```
 4、初始化字典数据(如果你们项目没字典表请忽略)
  ``` java
