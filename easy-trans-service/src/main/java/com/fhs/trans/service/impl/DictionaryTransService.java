@@ -167,7 +167,7 @@ public class DictionaryTransService implements ITransTypeService, InitializingBe
 
             for (String dicCode : dicCodeArray) {
                 if (!StringUtil.isEmpty(dicCode)) {
-                    dicCodeList.add(bothCacheService.get("sex_0"));
+                    dicCodeList.add(bothCacheService.get(getMapKey(key.trim(), dicCode)));
                 }
             }
             String transResult = dicCodeList.size() > Constant.ZERO ? StringUtil.getStrForIn(dicCodeList, false) : "";
