@@ -1,9 +1,9 @@
 package com.fhs.trans.service.impl;
 
 import com.fhs.core.trans.anno.Trans;
+import com.fhs.core.trans.vo.VO;
 import com.fhs.trans.manager.ClassInfo;
 import com.fhs.trans.manager.ClassManager;
-import com.fhs.core.trans.vo.VO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.ObjectUtils;
@@ -61,6 +61,53 @@ public class TransService {
     }
 
     /**
+     * 反向翻译集合
+     *
+     * @param objList 集合
+     */
+    public void unTransMore(List<?> objList) {
+        //校验objList
+        if (objList == null || objList.isEmpty() || objList.get(0) == null) {
+            return;
+        }
+        ClassInfo info = ClassManager.getClassInfoByName(objList.get(0).getClass());
+        if (info.getUnTransTypes() == null) {
+            return;
+        }
+        for (String unTransType : info.getUnTransTypes()) {
+            ITransTypeService transTypeService = transTypeServiceMap.get(unTransType);
+            if (ObjectUtils.isEmpty(transTypeService)) {
+                logger.warn("没有匹配的转换器:" + unTransType);
+                continue;
+            }
+            transTypeService.unTransMore(objList, info.getUnTransFieldMap().get(unTransType));
+        }
+    }
+
+    /**
+     * 反向翻译单个
+     * @param obj 对象
+     */
+    public void unTransOne(Object obj) {
+        if (obj == null) {
+            return;
+        }
+        ClassInfo info = ClassManager.getClassInfoByName(obj.getClass());
+        if (info.getUnTransTypes() == null) {
+            return;
+        }
+        for (String unTransType : info.getUnTransTypes()) {
+            ITransTypeService transTypeService = transTypeServiceMap.get(unTransType);
+            if (ObjectUtils.isEmpty(transTypeService)) {
+                logger.warn("没有匹配的转换器:" + unTransType);
+                continue;
+            }
+            transTypeService.unTransOne(obj, info.getUnTransFieldMap().get(unTransType));
+        }
+    }
+
+
+    /**
      * 翻译多个VO
      *
      * @param objList 需要翻译的对象集合
@@ -77,7 +124,7 @@ public class TransService {
      * @param excludeFields 排除翻译的字段
      */
     public void transMore(List<? extends VO> objList, Set<String> includeFields, Set<String> excludeFields) {
-        if (objList == null || objList.size() == 0) {
+        if (objList == null || objList.isEmpty() || objList.get(0) == null) {
             return;
         }
         trans(objList, null, includeFields, excludeFields);

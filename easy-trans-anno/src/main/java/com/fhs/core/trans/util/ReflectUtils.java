@@ -115,6 +115,7 @@ public class ReflectUtils {
         for (; clazz != Object.class; clazz = clazz.getSuperclass()) {
             try {
                 field = clazz.getDeclaredField(fieldName);
+                field.setAccessible(true);
                 return field;
             } catch (Exception e) {
                 // 这里甚么都不要做！并且这里的异常必须这样写，不能抛出去。

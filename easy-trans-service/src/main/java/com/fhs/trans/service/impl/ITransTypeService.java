@@ -146,6 +146,26 @@ public interface ITransTypeService {
      */
     void transMore(List<? extends VO> objList, List<Field> toTransList);
 
+    /**
+     * 反向翻译一个字段
+     *
+     * @param obj         需要翻译的对象
+     * @param toTransList 需要翻译的字段
+     */
+    default void unTransOne(Object obj, List<Field> toTransList){
+
+    }
+
+    /**
+     * 反向翻译多个 字段
+     *
+     * @param objList     需要翻译的对象集合
+     * @param toTransList 需要翻译的字段集合
+     */
+    default void unTransMore(List objList, List<Field> toTransList){
+
+    }
+
 
     /**
      * 设置ref
@@ -228,7 +248,7 @@ public interface ITransTypeService {
      * @param ref   ref
      * @param value 值
      */
-    default void setValue(VO vo, String ref, Object value) {
+    default void setValue(Object vo, String ref, Object value) {
         Field field = ReflectUtils.getDeclaredField(vo.getClass(), ref);
         if (value == null) {
             return;

@@ -1,6 +1,7 @@
 package com.fhs.trans.manager;
 
 import com.fhs.core.trans.anno.Trans;
+import com.fhs.core.trans.anno.UnTrans;
 import com.fhs.core.trans.util.ReflectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,14 +27,18 @@ public class ClassInfo implements Serializable {
 
     private Field idField;
 
-    String[] transTypes;
+    private String[] transTypes;
+
+    private String[] unTransTypes;
 
     private Map<String, Field> fieldMap = new HashMap<String, Field>();
 
     /**
-     * 获取翻译字段 key 翻译的类型比如字典的类型为wordbook
+     * 获取翻译字段 key 翻译的类型比如字典的类型为dict
      */
     private Map<String, List<Field>> transFieldMap = new HashMap<String, List<Field>>();
+
+    private Map<String, List<Field>> unTransFieldMap = new HashMap<String, List<Field>>();
 
     public ClassInfo() {
         super();
@@ -92,6 +97,7 @@ public class ClassInfo implements Serializable {
         // PO 类和其祖先类声明的字段名称集合
         List<Field> declaredFields = ReflectUtils.getAllField(clazz.newInstance());
         Set<String> transTypeSet = new HashSet<>();
+        Set<String> unTransTypeSet = new HashSet<>();
         int mod = 0;
         // 循环遍历所有的属性进行判断
         for (Field field : declaredFields) {
@@ -100,7 +106,7 @@ public class ClassInfo implements Serializable {
             if (Modifier.isStatic(mod) || Modifier.isFinal(mod) || Modifier.isVolatile(mod)) {
                 continue;
             }
-            Trans trans = field.getAnnotation(Trans.class) != null ? field.getAnnotation(Trans.class) : null;
+            Trans trans = field.getAnnotation(Trans.class);
             if (trans != null) {
                 if (trans.type() == null) {
                     LOGGER.warn("类 {} 属性 [{}] type为空。", clazz.getName(), field.getName());
@@ -112,9 +118,24 @@ public class ClassInfo implements Serializable {
                     transFieldMap.put(trans.type(), fieldList);
                 }
             }
+            UnTrans untrans = field.getAnnotation(UnTrans.class);
+            if (untrans != null) {
+                if (untrans.type() == null) {
+                    LOGGER.warn("类 {} 属性 [{}] type为空。", clazz.getName(), field.getName());
+                } else {
+                    unTransTypeSet.add(untrans.type());
+                    List<Field> fieldList = unTransFieldMap.get(untrans.type());
+                    fieldList = fieldList != null ? fieldList : new ArrayList<Field>();
+                    fieldList.add(field);
+                    unTransFieldMap.put(untrans.type(), fieldList);
+                }
+            }
+
         }
         this.transTypes = new String[transTypeSet.size()];
+        this.unTransTypes = new String[unTransTypeSet.size()];
         transTypeSet.toArray(transTypes);
+        unTransTypeSet.toArray(unTransTypes);
     }
 
     public Map<String, List<Field>> getTransFieldMap() {
@@ -129,5 +150,19 @@ public class ClassInfo implements Serializable {
         this.transTypes = transTypes;
     }
 
+    public String[] getUnTransTypes() {
+        return unTransTypes;
+    }
 
+    public void setUnTransTypes(String[] unTransTypes) {
+        this.unTransTypes = unTransTypes;
+    }
+
+    public Map<String, List<Field>> getUnTransFieldMap() {
+        return unTransFieldMap;
+    }
+
+    public void setUnTransFieldMap(Map<String, List<Field>> unTransFieldMap) {
+        this.unTransFieldMap = unTransFieldMap;
+    }
 }

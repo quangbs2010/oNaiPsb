@@ -2,10 +2,10 @@ package com.fhs.trans.service.impl;
 
 import com.fhs.common.utils.CheckUtils;
 import com.fhs.common.utils.ConverterUtils;
-import com.fhs.common.utils.JsonUtils;
 import com.fhs.common.utils.StringUtil;
 import com.fhs.core.trans.anno.Trans;
 import com.fhs.core.trans.anno.TransDefaultSett;
+import com.fhs.core.trans.anno.UnTrans;
 import com.fhs.core.trans.constant.TransType;
 import com.fhs.core.trans.util.ReflectUtils;
 import com.fhs.core.trans.vo.VO;
@@ -18,12 +18,16 @@ import lombok.NoArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.fhs.trans.service.impl.SimpleTransService.SimpleUnTransDiver.SEPARATOR;
 
 /**
  * 简单翻译
@@ -37,7 +41,15 @@ public class SimpleTransService implements ITransTypeService, InitializingBean {
      */
     private ThreadLocal<Map<String, Map<String, Object>>> threadLocalCache = new ThreadLocal<>();
 
+    /**
+     * 如果直接去表里查询，放到这个cache中
+     */
+    private ThreadLocal<Map<String, Map<String, String>>> unTransThreadLocalCache = new ThreadLocal<>();
+
     protected SimpleTransDiver transDiver;
+
+    @Autowired(required = false)
+    protected SimpleUnTransDiver simpleUnTransDiver;
 
     /**
      * 设置数据源
@@ -102,7 +114,7 @@ public class SimpleTransService implements ITransTypeService, InitializingBean {
                 for (Map.Entry<String, Object> stringObjectEntry : tempTransCache.entrySet()) {
                     if (!"targetObject".equals(stringObjectEntry.getKey())) {
                         finalTransCache.put(stringObjectEntry.getKey(), StringUtil.toString(stringObjectEntry.getValue()));
-                    }else{
+                    } else {
                         targetObject = stringObjectEntry.getValue();
                     }
                 }
@@ -131,6 +143,59 @@ public class SimpleTransService implements ITransTypeService, InitializingBean {
             }
         }
     }
+
+    @Override
+    public void unTransOne(Object obj, List<Field> toTransList) {
+        for (Field field : toTransList) {
+            String transValue = getUnTransResult( obj, field.getAnnotation(UnTrans.class),  field);
+            setValue(obj,field.getName(),transValue);
+        }
+    }
+
+    @Override
+    public void unTransMore(List objList, List<Field> toTransList) {
+
+        // @untrans(type simple,ref="userName",target=" t_user ",fields={"user_name"})
+        // @untrans(type simple,refs="userName,deptName",target=xx,fields={'f1','f2'})
+        // @untrans(type simple,refs="userName,deptName",target=xx,oo fields={"f1","f2"},on={"a.xx=b.xx","b.xx=c.xx"},unikey)   组合
+
+        if (simpleUnTransDiver == null) {
+            throw new RuntimeException("没有simpleUnTransDiver，请手动指定数据库");
+        }
+        unTransThreadLocalCache.set(new HashMap<>());
+        for (Field field : toTransList) {
+            UnTrans unTrans = field.getAnnotation(UnTrans.class);
+            Map<String, String> unTransMap = simpleUnTransDiver.getUnTransMap(unTrans, (List<String>) objList.stream().map(obj->{
+                return appedGroupKey(obj,unTrans,field);
+            }).collect(Collectors.toList()));
+            unTransThreadLocalCache.get().put(field.getName(), unTransMap);
+        }
+        for (Object o : objList) {
+            unTransOne(o, toTransList);
+        }
+        unTransThreadLocalCache.set(null);
+    }
+
+    /**
+     * 获取单个翻译结果
+     *
+     * @param obj     反向翻译对象
+     * @param unTrans 字段注解
+     * @param field   字段
+     * @return
+     */
+    public String getUnTransResult(Object obj, UnTrans unTrans, Field field) {
+        //本地缓存优先
+        if (this.unTransThreadLocalCache.get() != null) {
+            Map<String, String> fieldUnTransMap = this.unTransThreadLocalCache.get().get(field.getName());
+            if (fieldUnTransMap == null) {
+                return null;
+            }
+            fieldUnTransMap.get(appedGroupKey(obj, unTrans, field));
+        }
+        return simpleUnTransDiver.getUnTransResult(unTrans, appedGroupKey(obj, unTrans, field));
+    }
+
 
     @Override
     public void transMore(List<? extends VO> objList, List<Field> toTransList) {
@@ -163,6 +228,7 @@ public class SimpleTransService implements ITransTypeService, InitializingBean {
                         Object tempId = field.get(obj);
                         if (CheckUtils.isNotEmpty(tempId)) {
                             String pkey = ConverterUtils.toString(tempId);
+                            //处理集合
                             if (pkey.contains(",") || pkey.contains("[")) {
                                 pkey = pkey.replace("[", "").replace("]", "");
                                 String[] pkeys = pkey.split(",");
@@ -192,7 +258,7 @@ public class SimpleTransService implements ITransTypeService, InitializingBean {
                     List<? extends VO> dbDatas = findByIds(new ArrayList<Object>(ids), tempTrans, targetFields);
                     for (VO vo : dbDatas) {
                         threadLocalCache.get().put(getTargetClassName(tempTrans) + "_" + getUniqueKey(vo, tempTrans),
-                                createTempTransCacheMap(vo, tempTrans,targetFields));
+                                createTempTransCacheMap(vo, tempTrans, targetFields));
                     }
                 }
             }
@@ -256,10 +322,10 @@ public class SimpleTransService implements ITransTypeService, InitializingBean {
     public VO findById(Object id, Trans tempTrans) {
         return findById(() -> {
             HashSet<String> fields = new HashSet<>(Arrays.asList(tempTrans.fields()));
-            if(transCacheSettMap.containsKey(getTargetClassName(tempTrans))){
+            if (transCacheSettMap.containsKey(getTargetClassName(tempTrans))) {
                 fields = null;
             }
-            return transDiver.findById((Serializable) id, tempTrans.target(), tempTrans.uniqueField(),fields);
+            return transDiver.findById((Serializable) id, tempTrans.target(), tempTrans.uniqueField(), fields);
         }, tempTrans.dataSource());
     }
 
@@ -272,36 +338,36 @@ public class SimpleTransService implements ITransTypeService, InitializingBean {
      */
     private Map<String, Object> getTempTransCacheMap(Trans tempTrans, Object pkey) {
         //如果string的话去空格和[]
-        if(pkey!= null && pkey instanceof String){
-            pkey = ((String) pkey).replace("[","").replace("]","").trim();
+        if (pkey != null && pkey instanceof String) {
+            pkey = ((String) pkey).replace("[", "").replace("]", "").trim();
         }
         String className = getTargetClassName(tempTrans);
         String transType = this.getClass() == SimpleTransService.class ?
                 TransType.SIMPLE : TransType.RPC;
-        Map<String, Object>  voCacheMap = getFromGlobalCache(pkey, className, transType);
+        Map<String, Object> voCacheMap = getFromGlobalCache(pkey, className, transType);
         // 如果有缓存，则使用缓存不查DB
         if (transCacheSettMap.containsKey(className) && voCacheMap != null) {
             Map<String, Object> resultMap = new LinkedHashMap<>();
             for (String field : tempTrans.fields()) {
-                resultMap.put(field,voCacheMap.get(field));
+                resultMap.put(field, voCacheMap.get(field));
             }
             return resultMap;
-         //没有缓存尝试 threadLocalCache 又是空的话 直接去查询
+            //没有缓存尝试 threadLocalCache 又是空的话 直接去查询
         } else if (this.threadLocalCache.get() == null) {
             if (CheckUtils.isNullOrEmpty(pkey)) {
                 return new HashMap<>();
             }
             VO vo = this.findById(pkey, tempTrans);
-            return createTempTransCacheMap(vo, tempTrans,null);
-        }else{
+            return createTempTransCacheMap(vo, tempTrans, null);
+        } else {
             // 有缓存 但是不一定匹配到
             voCacheMap = this.threadLocalCache.get().get(getTargetClassName(tempTrans) + "_" + pkey);
-            if(voCacheMap == null){
+            if (voCacheMap == null) {
                 return null;
             }
             Map<String, Object> resultMap = new LinkedHashMap<>();
             for (String field : tempTrans.fields()) {
-                resultMap.put(field,voCacheMap.get(field));
+                resultMap.put(field, voCacheMap.get(field));
             }
             return resultMap;
         }
@@ -336,13 +402,13 @@ public class SimpleTransService implements ITransTypeService, InitializingBean {
      * @param trans 配置
      * @return
      */
-    protected Map<String, Object> createTempTransCacheMap(VO po, Trans trans,Set<String> targetFields) {
+    protected Map<String, Object> createTempTransCacheMap(VO po, Trans trans, Set<String> targetFields) {
         String fielVal = null;
         Map<String, Object> tempCacheTransMap = new LinkedHashMap<>();
         if (po == null) {
             return tempCacheTransMap;
         }
-        List<String> tempFields =  targetFields!=null ? new ArrayList<>(targetFields) : Arrays.asList(trans.fields());
+        List<String> tempFields = targetFields != null ? new ArrayList<>(targetFields) : Arrays.asList(trans.fields());
         for (String field : tempFields) {
             fielVal = ConverterUtils.toString(ReflectUtils.getValue(po, field));
             tempCacheTransMap.put(field, fielVal);
@@ -355,9 +421,9 @@ public class SimpleTransService implements ITransTypeService, InitializingBean {
             //缓存对象把所有字段都放进去，因为不知道客户会要啥
             List<Field> fields = ReflectUtils.getAllField(po.getClass());
             for (Field field : fields) {
-                voCacheMap.put(field.getName(),ReflectUtils.getValue(po,field.getName()));
+                voCacheMap.put(field.getName(), ReflectUtils.getValue(po, field.getName()));
             }
-            voCacheMap.put("targetObject",po);
+            voCacheMap.put("targetObject", po);
             put2GlobalCache(voCacheMap, cacheSett.isAccess(), cacheSett.getCacheSeconds(), cacheSett.getMaxCache(), po.getPkey(),
                     className, this.getClass() == SimpleTransService.class ?
                             TransType.SIMPLE : TransType.RPC);
@@ -401,6 +467,27 @@ public class SimpleTransService implements ITransTypeService, InitializingBean {
         Class typeClass = (Class) type;
 
         this.transCacheSettMap.put(typeClass.getName(), cacheSett);
+    }
+
+    public String appedGroupKey(Object obj, UnTrans unTrans, Field field) {
+        //代表多个字段拼接
+        if (unTrans.refs().length > 1) {
+            List<String> values = new ArrayList<>();
+            for (String ref : unTrans.refs()) {
+                try {
+                    values.add(ConverterUtils.toString(ReflectUtils.getDeclaredField(obj.getClass(), ref).get(obj)));
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return values.stream().collect(Collectors.joining(SEPARATOR));
+        }
+        //如果refs 不是多个代表只有单个字段，非组合
+        try {
+            return ConverterUtils.toString(ReflectUtils.getDeclaredField(obj.getClass(), unTrans.refs()[0]).get(obj));
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -452,6 +539,39 @@ public class SimpleTransService implements ITransTypeService, InitializingBean {
         default VO findById(Serializable id, Class<? extends VO> targetClass, String uniqueField, Set<String> targetFields) {
             return findById(id, targetClass, uniqueField);
         }
+    }
+
+    /**
+     * 反向翻译驱动
+     */
+    public static interface SimpleUnTransDiver {
+
+        /**
+         * 分隔符
+         */
+        String SEPARATOR = "/";
+
+        String SQL = "SELECT {0} AS groupKey,{1} as uniqueKey FROM {2} WHERE {3} IN ";
+
+
+        /**
+         * 获取翻译的map
+         *
+         * @param unTrans   反向翻译配置
+         * @param groupKeys 分组key集合
+         * @return
+         */
+        Map<String, String> getUnTransMap(UnTrans unTrans, List<String> groupKeys);
+
+        /**
+         * 获取单个反向翻译结果
+         *
+         * @param unTrans  反向翻译配置
+         * @param groupKey 分组key
+         * @return
+         */
+        String getUnTransResult(UnTrans unTrans, String groupKey);
+
     }
 
 

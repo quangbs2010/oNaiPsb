@@ -6,6 +6,7 @@ import com.fhs.common.constant.Constant;
 import com.fhs.common.utils.JsonUtils;
 import com.fhs.common.utils.StringUtil;
 import com.fhs.core.trans.anno.Trans;
+import com.fhs.core.trans.anno.UnTrans;
 import com.fhs.core.trans.constant.TransType;
 import com.fhs.core.trans.util.ReflectUtils;
 import com.fhs.core.trans.vo.VO;
@@ -30,6 +31,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class DictionaryTransService implements ITransTypeService, InitializingBean {
 
+    private static final String UNTRANS_PREFIX = "un_trans:";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(DictionaryTransService.class);
 
 
@@ -40,10 +43,7 @@ public class DictionaryTransService implements ITransTypeService, InitializingBe
     private RedisCacheService<String> redisCacheService;
 
 
-    /**
-     * 反向翻译
-     */
-    private Map<String, String> unTransMap = new ConcurrentHashMap<>();
+
 
     /**
      * 是否开启国际化
@@ -75,7 +75,7 @@ public class DictionaryTransService implements ITransTypeService, InitializingBe
         }
         dicMap.keySet().forEach(dictCode -> {
             bothCacheService.put(dictGroupCode + "_" + dictCode, dicMap.get(dictCode), false);
-            unTransMap.put(dictGroupCode + "_" + dicMap.get(dictCode), dictCode);
+            bothCacheService.put(UNTRANS_PREFIX + dictGroupCode + "_" + dicMap.get(dictCode), dictCode , false);
         });
     }
 
@@ -139,11 +139,35 @@ public class DictionaryTransService implements ITransTypeService, InitializingBe
         String dictGroupCode = StringUtil.toString(messageMap.get("dictGroupCode"));
         if (!StringUtils.isEmpty(dictGroupCode)) {
             bothCacheService.remove(dictGroupCode, true);
+            bothCacheService.remove(UNTRANS_PREFIX + dictGroupCode, true);
+
         }
     }
 
     public Map<String, String> getDictionaryTransMap() {
         return bothCacheService.getLocalCacheMap();
+    }
+
+    @Override
+    public void unTransOne(Object obj, List<Field> toTransList) {
+        for (Field tempField : toTransList) {
+            tempField.setAccessible(true);
+            UnTrans unTrans = tempField.getAnnotation(UnTrans.class);
+            try {
+                String value = bothCacheService.get(UNTRANS_PREFIX + unTrans.dict() + "_"
+                        +  ReflectUtils.getDeclaredField(obj.getClass(),unTrans.refs()[0]).get(obj));
+                setValue(obj,tempField.getName(),value);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    @Override
+    public void unTransMore(List objList, List<Field> toTransList) {
+        for (Object obj : objList) {
+            unTransOne(obj, toTransList);
+        }
     }
 
     @Override
@@ -229,8 +253,5 @@ public class DictionaryTransService implements ITransTypeService, InitializingBe
         }
     }
 
-    public Map<String, String> getUnTransMap() {
-        return this.unTransMap;
-    }
 
 }
