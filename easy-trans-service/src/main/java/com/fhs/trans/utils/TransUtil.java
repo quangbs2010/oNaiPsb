@@ -54,10 +54,6 @@ public class TransUtil {
             return param;
         }
         boolean isVo = false;
-        //防止二次翻译
-        if (param.iterator().next().getClass().getName().contains("DynamicTypeBuilder")) {
-            return param;
-        }
         if (param.iterator().next() instanceof VO) {
             transService.transMore(new ArrayList<>(param), includeFields, excludeFields);
             for (Object tempObject : param) {
@@ -165,10 +161,6 @@ public class TransUtil {
             }
         }
         if (object instanceof VO) {
-            //代理对象不重新翻译
-            if (object.getClass().getName().contains("DynamicTypeBuilder")) {
-                return object;
-            }
             transService.transOne((VO) object, includeFields, excludeFields);
             transFields(object, transService, isProxy, hasTransObjs, includeFields, excludeFields);
             isVo = true;
