@@ -93,10 +93,10 @@ public class MybatisPlusSimpleTransDiver implements SimpleTransService.SimpleTra
     public String getColumn(Class<? extends VO> targetClass, String field) {
         Map<String, ColumnCache> cacheMap = LambdaUtils.getColumnMap(targetClass);
         if (cacheMap == null) {
-            ExceptionUtils.mpe("Can not find TableInfo from Class: \"%s\".", targetClass.getName());
+            throw ExceptionUtils.mpe("Can not find TableInfo from Class: \"%s\".", targetClass.getName());
         }
         if (!cacheMap.containsKey(field.toUpperCase())) {
-            ExceptionUtils.mpe("Can not find field: \"%s\" in Class: \"%s\".", field, targetClass.getName());
+            throw ExceptionUtils.mpe("Can not find field: \"%s\" in Class: \"%s\".", field, targetClass.getName());
         }
         return cacheMap.get(field.toUpperCase()).getColumn();
     }
