@@ -187,11 +187,11 @@ public class TransServiceConfig implements InitializingBean {
         return new TransMethodResultAop();
     }
 
-    @Bean
+    /*@Bean
     @ConditionalOnProperty(name = "easy-trans.is-enable-global", havingValue = "true")
     public EasyTransResponseBodyAdvice EasyTransResponseBodyAdvice() {
         return new EasyTransResponseBodyAdvice();
-    }
+    }*/
 
 
     @Bean

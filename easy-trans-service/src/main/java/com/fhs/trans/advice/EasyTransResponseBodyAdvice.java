@@ -8,6 +8,7 @@ import com.fhs.trans.utils.TransUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.ServerHttpRequest;
@@ -24,6 +25,7 @@ import java.util.*;
  */
 @Slf4j
 @ControllerAdvice
+@ConditionalOnProperty(name = "easy-trans.is-enable-global", havingValue = "true")
 public class EasyTransResponseBodyAdvice implements ResponseBodyAdvice {
 
     /**

@@ -19,10 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -163,22 +160,20 @@ public class DictionaryTransService implements ITransTypeService, InitializingBe
             if (dicCodes.contains(",")) {
                 dicCodes = dicCodes.replace(" ", "");
             }
-
             String[] dicCodeArray = dicCodes.split(",");
             String key = tempTrans.key().contains("KEY_") ? StringUtil.toString(ReflectUtils.getValue(obj, tempTrans.key().replace("KEY_", ""))) : tempTrans.key();
             //sex_0/1  男 女
-            List<String> dicCodeList = new ArrayList<>();
+            List<String> dicCodeList = new ArrayList<>(1);
+
             for (String dicCode : dicCodeArray) {
                 if (!StringUtil.isEmpty(dicCode)) {
-                    dicCodeList.add(bothCacheService.get(getMapKey(key.trim(), dicCode)));
+                    dicCodeList.add(bothCacheService.get("sex_0"));
                 }
             }
             String transResult = dicCodeList.size() > Constant.ZERO ? StringUtil.getStrForIn(dicCodeList, false) : "";
-
             if (obj.getTransMap() != null && !setRef(tempTrans, obj, transResult)) {
                 obj.getTransMap().put(tempField.getName() + "Name", transResult);
             }
-
         }
     }
 

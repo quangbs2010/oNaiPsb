@@ -6,10 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -61,7 +58,8 @@ public class BothCacheService<T> {
     public T get(String key) {
         if (!StringUtil.isEmpty(key)) {
             if (localCacheMap.containsKey(key)) {
-                return localCacheMap.get(key);
+                T result = localCacheMap.get(key);
+                return result;
             }
             if (redisCacheService != null && useRedis) {
                 T result = redisCacheService.get(TRANS_PRE + key);
