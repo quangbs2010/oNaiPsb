@@ -162,11 +162,12 @@ public class SimpleTransService implements ITransTypeService, InitializingBean {
                     try {
                         Object tempId = field.get(obj);
                         if (CheckUtils.isNotEmpty(tempId)) {
-                            String pkey = ConverterUtils.toString(tempId).replace("[", "").replace("]", "");
-                            if (pkey.contains(",")) {
+                            String pkey = ConverterUtils.toString(tempId);
+                            if (pkey.contains(",") || pkey.contains("[")) {
+                                pkey = pkey.replace("[", "").replace("]", "");
                                 String[] pkeys = pkey.split(",");
                                 for (String id : pkeys) {
-                                    ids.add(id);
+                                    ids.add(id.trim());
                                 }
                             } else {
                                 ids.add(tempId);
