@@ -22,9 +22,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.*;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.PatternTopic;
@@ -37,6 +35,7 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 @Configuration
 @ServletComponentScan({"com.fhs.trans.filter"})
+@Import(EasyTransResponseBodyAdvice.class)
 public class TransServiceConfig implements InitializingBean {
 
     /**
