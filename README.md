@@ -8,7 +8,8 @@
 
 # 插件文档
 有问题先看文档哦！！！    
-http://easy-trans.fhs-opensource.top/ 
+http://easy-trans.fhs-opensource.top/     
+服务器问题文档无法查看，文档在这里：https://toscode.gitee.com/fhs-opensource/vite_press_easy_trans 自己down下来先看吧。
 
 # 求star
 我们非常需要您的star支持，就是右上角的那个小星星，帮忙点一下吧，抱拳啦！
